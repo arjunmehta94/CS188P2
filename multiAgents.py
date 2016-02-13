@@ -15,6 +15,7 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
+import sys
 
 from game import Agent
 
@@ -68,13 +69,43 @@ class ReflexAgent(Agent):
         """
         # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
+        capsuleList = currentGameState.getCapsules()
         newPos = successorGameState.getPacmanPosition()
         newFood = successorGameState.getFood()
+        newFoodList = newFood.asList()
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        newGhostPositions = [ghostState.getPosition() for ghostState in newGhostStates]
+        numAgents = currentGameState.getNumAgents()
+        
 
+        ## CHECK FOR NUMBER OF REMAINING FOOD PELLETS
+        food_cnt_remaining = newFood.count()
+        foodDistances = [util.manhattanDistance(newPos, foodPos) for foodPos in newFoodList]
+        if foodDistances == []:
+          minFoodDistance = 1000000
+        else:
+          minFoodDistance = min(foodDistances)
+        capsuleDistances = [util.manhattanDistance(newPos, capsulePos) for capsulePos in capsuleList]
+        if capsuleDistances == []:
+          minCapsuleDistance = 1000000
+        else:
+          minCapsuleDistance = min(capsuleDistances)
+        ghostProperties = {}
+        for ghostState in newGhostStates:
+          ghostProperties[ghostState.getPosition()] = ghostState.scaredTimer
+        closestGhostPos = None
+        minGhostDistance = sys.maxint
+        for ghostPos in ghostProperties.keys():
+          dist = util.manhattanDistance(newPos, ghostPos)
+          if dist < minGhostDistance:
+            minGhostDistance = dist
+            closestGhostPos = ghostPos
+        #print ghostProperties
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        #return successorGameState.getScore()
+        #print action
+        return float(1)/float(minFoodDistance + 1) - food_cnt_remaining + float(1)/float(minCapsuleDistance + 1) - 0.4/float(minGhostDistance + 1)
 
 def scoreEvaluationFunction(currentGameState):
     """
