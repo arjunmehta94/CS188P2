@@ -67,6 +67,8 @@ class ReflexAgent(Agent):
         Print out these variables to see what you're getting, then combine them
         to create a masterful evaluation function.
         """
+        if action == Directions.STOP:
+          return -1000000
         # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         capsuleList = currentGameState.getCapsules()
@@ -81,12 +83,13 @@ class ReflexAgent(Agent):
 
         ## CHECK FOR NUMBER OF REMAINING FOOD PELLETS
         food_cnt_remaining = newFood.count()
-        foodDistances = [util.manhattanDistance(newPos, foodPos) for foodPos in newFoodList]
+        foodDistanceScalingFactor = 13
+        foodDistances = [foodDistanceScalingFactor * util.manhattanDistance(newPos, foodPos) for foodPos in newFoodList]
         if foodDistances == []:
           minFoodDistance = 1000000
         else:
           minFoodDistance = min(foodDistances)
-        capsuleDistances = [util.manhattanDistance(newPos, capsulePos) for capsulePos in capsuleList]
+        capsuleDistances = [foodDistanceScalingFactor * util.manhattanDistance(newPos, capsulePos) for capsulePos in capsuleList]
         if capsuleDistances == []:
           minCapsuleDistance = 1000000
         else:
@@ -104,8 +107,21 @@ class ReflexAgent(Agent):
         #print ghostProperties
         "*** YOUR CODE HERE ***"
         #return successorGameState.getScore()
-        #print action
-        return float(1)/float(minFoodDistance + 1) - food_cnt_remaining + float(1)/float(minCapsuleDistance + 1) - 0.4/float(minGhostDistance + 1)
+        ghostFeatureScale = 8
+        foodFeatureScale = 10
+        foodCntFeatureScale = 2
+        capsuleFeatureScale = 7.5
+
+        ghostFeature = 0
+        closestGhostTimer = ghostProperties[closestGhostPos]
+        if closestGhostTimer > 0:
+          if minGhostDistance < 0.5 * closestGhostTimer:
+            ghostFeature = ghostFeatureScale/float(minGhostDistance + 1)
+        else:
+          ghostFeature = -ghostFeatureScale/float(minGhostDistance + 1)
+        evaluationValue = float(foodFeatureScale)/float(minFoodDistance + 1) - foodCntFeatureScale*food_cnt_remaining + float(capsuleFeatureScale)/float(minCapsuleDistance + 1) + ghostFeature
+        #print action + ' ' + str(evaluationValue)
+        return evaluationValue
 
 def scoreEvaluationFunction(currentGameState):
     """
