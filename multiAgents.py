@@ -157,6 +157,38 @@ class MinimaxAgent(MultiAgentSearchAgent):
     """
       Your minimax agent (question 2)
     """
+    # (action, value)
+    def value(self, gameState, action, numGhosts, depthSoFar, currentAgent):
+      # not sure about winning and losing states
+      if gameState.isWin() or gameState.isLose():
+        return (action, self.evaluationFunction(gameState))
+      if depthSoFar == 0:
+        return (action, self.evaluationFunction(gameState))
+      if currentAgent == 0:
+        return self.max_value(gameState, numGhosts, depthSoFar, currentAgent)
+      elif currentAgent > 0 and currentAgent <= numGhosts:
+        return self.min_value(gameState, numGhosts, depthSoFar, currentAgent)
+
+    def max_value(self, gameState, numGhosts, depthSoFar, currentAgent):
+      tmpValue = (None, -sys.maxint)
+      for action in gameState.getLegalActions(0):
+        successorGameState = gameState.generateSuccessor(0, action)
+        successorValue = self.value(successorGameState, action, numGhosts, depthSoFar, currentAgent + 1)
+        if successorValue[1] >= tmpValue[1]:
+          tmpValue = successorValue
+      return tmpValue
+
+    def min_value(self, gameState, numGhosts, depthSoFar, currentAgent):
+      tmpValue = (None, sys.maxint)
+      for action in gameState.getLegalActions(currentAgent):
+        successorGameState = gameState.generateSuccessor(currentAgent, action)
+        if currentAgent == numGhosts:
+          successorValue = self.value(successorGameState, action, numGhosts, depthSoFar - 1, 0)
+        else:
+          successorValue = self.value(successorGameState, action, numGhosts, depthSoFar, currentAgent + 1)
+        if successorValue[1] <= tmpValue[1]:
+          tmpValue = successorValue
+      return tmpValue
 
     def getAction(self, gameState):
         """
@@ -182,6 +214,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
+        return self.value(gameState, Directions.STOP, gameState.getNumAgents() - 1, self.depth, 0)[0]
         util.raiseNotDefined()
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
