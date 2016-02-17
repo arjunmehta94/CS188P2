@@ -166,16 +166,18 @@ class MinimaxAgent(MultiAgentSearchAgent):
         return (action, self.evaluationFunction(gameState))
       if currentAgent == 0:
         return self.max_value(gameState, numGhosts, depthSoFar, currentAgent)
-      elif currentAgent > 0 and currentAgent <= numGhosts:
+      elif currentAgent != 0:
         return self.min_value(gameState, numGhosts, depthSoFar, currentAgent)
 
     def max_value(self, gameState, numGhosts, depthSoFar, currentAgent):
       tmpValue = (None, -sys.maxint)
+      count = 0
       for action in gameState.getLegalActions(0):
+        count += 1
         successorGameState = gameState.generateSuccessor(0, action)
         successorValue = self.value(successorGameState, action, numGhosts, depthSoFar, currentAgent + 1)
-        if successorValue[1] >= tmpValue[1]:
-          tmpValue = successorValue
+        if successorValue[1] > tmpValue[1]:
+          tmpValue = (action, successorValue[1])
       return tmpValue
 
     def min_value(self, gameState, numGhosts, depthSoFar, currentAgent):
@@ -186,8 +188,8 @@ class MinimaxAgent(MultiAgentSearchAgent):
           successorValue = self.value(successorGameState, action, numGhosts, depthSoFar - 1, 0)
         else:
           successorValue = self.value(successorGameState, action, numGhosts, depthSoFar, currentAgent + 1)
-        if successorValue[1] <= tmpValue[1]:
-          tmpValue = successorValue
+        if successorValue[1] < tmpValue[1]:
+          tmpValue = (action, successorValue[1])
       return tmpValue
 
     def getAction(self, gameState):
@@ -214,7 +216,8 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        return self.value(gameState, Directions.STOP, gameState.getNumAgents() - 1, self.depth, 0)[0]
+        retVal = self.value(gameState, Directions.STOP, gameState.getNumAgents() - 1, self.depth, 0)
+        return retVal[0]
         util.raiseNotDefined()
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
