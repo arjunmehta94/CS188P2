@@ -279,9 +279,75 @@ def betterEvaluationFunction(currentGameState):
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
       evaluation function (question 5).
 
-      DESCRIPTION: <write something here so we know what you did>
+      DESCRIPTION: 
+      1. Accounted for distance to closest pellet (reciprocal)
+      2. Accounted for # of food pellets remaining
+      3. Accounted for distance to nearest ghost, and reacted positively (i.e. towards ghost) if 
+         it was scared, else we ran away from it. Also, we pseudo-accounted for distance between us 
+         and the ghost, and whether it made sense to chase it based on scared timers.
+      4. Accounted for distance to capsules (larger food pellets)
+      5. We gave weights for all these features, ghostFeatureScale = 8, foodFeatureScale = 10, 
+         foodCntFeatureScale = 2, capsuleFeatureScale = 7.5. We gave food the highest weight, so 
+         that the pacman does not stall. We also gave ghostFeatureScale a high value (relatively)
+         so that pacman would run away from ghosts when in danger.
+      6. We also scaled our manhattanDistance to food by (an arbitrarily large) factor of 13. This
+         is because we were facing problems of similar evaluation values when we were in a region 
+         with scarce food, and food was far away. The pacman was getting stuck as a result. Adding
+         this large scaling factor allowed for a greater difference in value of nearby states.
     """
     "*** YOUR CODE HERE ***"
+    #successorGameState = currentGameState.generatePacmanSuccessor(action)
+    capsuleList = currentGameState.getCapsules()
+    newPos = currentGameState.getPacmanPosition()
+    newFood = currentGameState.getFood()
+    newFoodList = newFood.asList()
+    newGhostStates = currentGameState.getGhostStates()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    newGhostPositions = [ghostState.getPosition() for ghostState in newGhostStates]
+    numAgents = currentGameState.getNumAgents()
+    
+
+    ## CHECK FOR NUMBER OF REMAINING FOOD PELLETS
+    food_cnt_remaining = newFood.count()
+    foodDistanceScalingFactor = 13
+    foodDistances = [foodDistanceScalingFactor * util.manhattanDistance(newPos, foodPos) for foodPos in newFoodList]
+    if foodDistances == []:
+      minFoodDistance = 1000000
+    else:
+      minFoodDistance = min(foodDistances)
+    capsuleDistances = [foodDistanceScalingFactor * util.manhattanDistance(newPos, capsulePos) for capsulePos in capsuleList]
+    if capsuleDistances == []:
+      minCapsuleDistance = 1000000
+    else:
+      minCapsuleDistance = min(capsuleDistances)
+    ghostProperties = {}
+    for ghostState in newGhostStates:
+      ghostProperties[ghostState.getPosition()] = ghostState.scaredTimer
+    closestGhostPos = None
+    minGhostDistance = sys.maxint
+    for ghostPos in ghostProperties.keys():
+      dist = util.manhattanDistance(newPos, ghostPos)
+      if dist < minGhostDistance:
+        minGhostDistance = dist
+        closestGhostPos = ghostPos
+    #print ghostProperties
+    "*** YOUR CODE HERE ***"
+    #return successorGameState.getScore()
+    ghostFeatureScale = 8
+    foodFeatureScale = 10
+    foodCntFeatureScale = 2
+    capsuleFeatureScale = 7.5
+
+    ghostFeature = 0
+    closestGhostTimer = ghostProperties[closestGhostPos]
+    if closestGhostTimer > 0:
+      if minGhostDistance < 0.5 * closestGhostTimer:
+        ghostFeature = ghostFeatureScale/float(minGhostDistance + 1)
+    else:
+      ghostFeature = -ghostFeatureScale/float(minGhostDistance + 1)
+    evaluationValue = float(foodFeatureScale)/float(minFoodDistance + 1) - foodCntFeatureScale*food_cnt_remaining + float(capsuleFeatureScale)/float(minCapsuleDistance + 1) + ghostFeature
+    #print action + ' ' + str(evaluationValue)
+    return evaluationValue
     util.raiseNotDefined()
 
 # Abbreviation
