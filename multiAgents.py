@@ -153,24 +153,26 @@ class MultiAgentSearchAgent(Agent):
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
     # (action, value)
-    def value(self, gameState, action, numGhosts, depthSoFar, currentAgent, alpha, beta):
+    def value(self, gameState, action, numGhosts, depthSoFar, currentAgent, alpha, beta, q):
       # not sure about winning and losing states
       if gameState.isWin() or gameState.isLose():
         return (action, self.evaluationFunction(gameState))
       if depthSoFar == 0:
         return (action, self.evaluationFunction(gameState))
       if currentAgent == 0:
-        return self.max_value(gameState, numGhosts, depthSoFar, currentAgent, alpha, beta)
-      elif currentAgent != 0:
-        return self.min_value(gameState, numGhosts, depthSoFar, currentAgent, alpha, beta)
+        return self.max_value(gameState, numGhosts, depthSoFar, currentAgent, alpha, beta, q)
+      elif currentAgent != 0 and q == 1:
+        return self.min_value(gameState, numGhosts, depthSoFar, currentAgent, alpha, beta, q)
+      elif currentAgent != 0 and q == 2:
+        return self.exp_value(gameState, numGhosts, depthSoFar, currentAgent, alpha, beta, q)
 
-    def max_value(self, gameState, numGhosts, depthSoFar, currentAgent, alpha, beta):
-      tmpValue = (None, -sys.maxint)
+    def max_value(self, gameState, numGhosts, depthSoFar, currentAgent, alpha, beta, q):
+      tmpValue = [None, -sys.maxint]
       count = 0
       for action in gameState.getLegalActions(0):
         count += 1
         successorGameState = gameState.generateSuccessor(0, action)
-        successorValue = self.value(successorGameState, action, numGhosts, depthSoFar, currentAgent + 1, alpha, beta)
+        successorValue = self.value(successorGameState, action, numGhosts, depthSoFar, currentAgent + 1, alpha, beta, q)
         if successorValue[1] > tmpValue[1]:
           tmpValue = (action, successorValue[1])
         if alpha != None and beta != None:
@@ -179,20 +181,33 @@ class MultiAgentSearchAgent(Agent):
           alpha = max(alpha, tmpValue[1])
       return tmpValue
 
-    def min_value(self, gameState, numGhosts, depthSoFar, currentAgent, alpha, beta):
-      tmpValue = (None, sys.maxint)
+    def min_value(self, gameState, numGhosts, depthSoFar, currentAgent, alpha, beta, q):
+      tmpValue = [None, sys.maxint]
       for action in gameState.getLegalActions(currentAgent):
         successorGameState = gameState.generateSuccessor(currentAgent, action)
         if currentAgent == numGhosts:
-          successorValue = self.value(successorGameState, action, numGhosts, depthSoFar - 1, 0, alpha, beta)
+          successorValue = self.value(successorGameState, action, numGhosts, depthSoFar - 1, 0, alpha, beta, q)
         else:
-          successorValue = self.value(successorGameState, action, numGhosts, depthSoFar, currentAgent + 1, alpha, beta)
+          successorValue = self.value(successorGameState, action, numGhosts, depthSoFar, currentAgent + 1, alpha, beta, q)
         if successorValue[1] < tmpValue[1]:
           tmpValue = (action, successorValue[1])
         if alpha != None and beta != None:
           if tmpValue[1] < alpha:
             return tmpValue
           beta = min(beta, tmpValue[1])
+      return tmpValue
+
+    def exp_value(self, gameState, numGhosts, depthSoFar, currentAgent, alpha, beta, q):
+      tmpValue = [None, 0]
+      legalActions = gameState.getLegalActions(currentAgent)
+      for action in legalActions:
+        successorGameState = gameState.generateSuccessor(currentAgent, action)
+        if currentAgent == numGhosts:
+          successorValue = self.value(successorGameState, action, numGhosts, depthSoFar - 1, 0, alpha, beta, q)
+        else:
+          successorValue = self.value(successorGameState, action, numGhosts, depthSoFar, currentAgent + 1, alpha, beta, q)
+        tmpValue[1] += 1.0/float(len(legalActions)) * successorValue[1]
+        tmpValue[0] = action
       return tmpValue
 
 class MinimaxAgent(MultiAgentSearchAgent):
@@ -224,7 +239,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        retVal = self.value(gameState, Directions.STOP, gameState.getNumAgents() - 1, self.depth, 0, None, None)
+        retVal = self.value(gameState, Directions.STOP, gameState.getNumAgents() - 1, self.depth, 0, None, None, 1)
         return retVal[0]
         util.raiseNotDefined()
 
@@ -238,7 +253,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        retVal = self.value(gameState, Directions.STOP, gameState.getNumAgents() - 1, self.depth, 0, -sys.maxint, sys.maxint)
+        retVal = self.value(gameState, Directions.STOP, gameState.getNumAgents() - 1, self.depth, 0, -sys.maxint, sys.maxint, 1)
         return retVal[0]
         util.raiseNotDefined()
 
@@ -255,6 +270,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
+        retVal = self.value(gameState, Directions.STOP, gameState.getNumAgents() - 1, self.depth, 0, -sys.maxint, sys.maxint, 2)
+        return retVal[0]
         util.raiseNotDefined()
 
 def betterEvaluationFunction(currentGameState):
